@@ -4,6 +4,8 @@ class CartManager {
         this.cart = {
             agents: [],
             commands: [],
+            settings: [],
+            hooks: [],
             mcps: []
         };
         this.init();
@@ -72,7 +74,7 @@ class CartManager {
         if (this.getTotalItems() === 0) return;
         
         if (confirm('Are you sure you want to clear your entire stack?')) {
-            this.cart = { agents: [], commands: [], mcps: [] };
+            this.cart = { agents: [], commands: [], settings: [], hooks: [], mcps: [] };
             this.saveCartToStorage();
             this.updateCartUI();
             this.updateFloatingButton();
@@ -82,7 +84,7 @@ class CartManager {
 
     // Get total items count
     getTotalItems() {
-        return this.cart.agents.length + this.cart.commands.length + this.cart.mcps.length;
+        return this.cart.agents.length + this.cart.commands.length + this.cart.settings.length + this.cart.hooks.length + this.cart.mcps.length;
     }
 
     // Check if item is in cart
@@ -129,11 +131,15 @@ class CartManager {
         // Update counts
         document.getElementById('agentsCount').textContent = this.cart.agents.length;
         document.getElementById('commandsCount').textContent = this.cart.commands.length;
+        document.getElementById('settingsCount').textContent = this.cart.settings.length;
+        document.getElementById('hooksCount').textContent = this.cart.hooks.length;
         document.getElementById('mcpsCount').textContent = this.cart.mcps.length;
 
-        // Render agents
+        // Render sections
         this.renderSection('agents', 'agentsList');
         this.renderSection('commands', 'commandsList');
+        this.renderSection('settings', 'settingsList');
+        this.renderSection('hooks', 'hooksList');
         this.renderSection('mcps', 'mcpsList');
     }
 
@@ -175,6 +181,16 @@ class CartManager {
         if (this.cart.commands.length > 0) {
             const commandPaths = this.cart.commands.map(item => item.path).join(',');
             command += ` --command "${commandPaths}"`;
+        }
+        
+        if (this.cart.settings.length > 0) {
+            const settingsPaths = this.cart.settings.map(item => item.path).join(',');
+            command += ` --setting "${settingsPaths}"`;
+        }
+        
+        if (this.cart.hooks.length > 0) {
+            const hooksPaths = this.cart.hooks.map(item => item.path).join(',');
+            command += ` --hook "${hooksPaths}"`;
         }
         
         if (this.cart.mcps.length > 0) {
@@ -233,6 +249,8 @@ class CartManager {
         const icons = {
             agents: '🤖',
             commands: '⚡',
+            settings: '⚙️',
+            hooks: '🪝',
             mcps: '🔌'
         };
         return icons[type] || '📦';
@@ -252,10 +270,12 @@ class CartManager {
                 // Ensure all arrays exist
                 if (!this.cart.agents) this.cart.agents = [];
                 if (!this.cart.commands) this.cart.commands = [];
+                if (!this.cart.settings) this.cart.settings = [];
+                if (!this.cart.hooks) this.cart.hooks = [];
                 if (!this.cart.mcps) this.cart.mcps = [];
             } catch (e) {
                 console.warn('Failed to load cart from storage:', e);
-                this.cart = { agents: [], commands: [], mcps: [] };
+                this.cart = { agents: [], commands: [], settings: [], hooks: [], mcps: [] };
             }
         }
     }
@@ -419,8 +439,7 @@ function clearCart() {
 
 function copyCartCommand() {
     const command = document.getElementById('generatedCommand').textContent;
-    copyToClipboard(command);
-    cartManager.showNotification('Command copied to clipboard!', 'success');
+    copyToClipboard(command, 'Command copied to clipboard!');
 }
 
 function downloadStack() {
@@ -465,11 +484,10 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Share functionality
-function showShareOptions() {
-    const shareOptions = document.getElementById('shareOptions');
-    const isVisible = shareOptions.style.display !== 'none';
-    shareOptions.style.display = isVisible ? 'none' : 'flex';
+// Share functionality - Dropdown style
+function toggleShareDropdown() {
+    const shareDropdown = document.getElementById('shareDropdown');
+    shareDropdown.classList.toggle('open');
 }
 
 function shareOnTwitter() {
@@ -483,8 +501,8 @@ Create yours at https://aitmpl.com`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
     window.open(twitterUrl, '_blank');
     
-    // Hide share options after sharing
-    document.getElementById('shareOptions').style.display = 'none';
+    // Close dropdown after sharing
+    document.getElementById('shareDropdown').classList.remove('open');
 }
 
 function shareOnThreads() {
@@ -498,6 +516,14 @@ Create yours at https://aitmpl.com`;
     const threadsUrl = `https://threads.net/intent/post?text=${encodeURIComponent(message)}`;
     window.open(threadsUrl, '_blank');
     
-    // Hide share options after sharing
-    document.getElementById('shareOptions').style.display = 'none';
+    // Close dropdown after sharing
+    document.getElementById('shareDropdown').classList.remove('open');
 }
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const shareDropdown = document.getElementById('shareDropdown');
+    if (shareDropdown && !shareDropdown.contains(e.target)) {
+        shareDropdown.classList.remove('open');
+    }
+});
